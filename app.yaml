@@ -1,2 +1,6 @@
 runtime: python27
 threadsafe: true
+
+handlers:
+- url: /.*
+  script: silencer_bot.app

@@ -1,4 +1,2 @@
 pyTelegramBotAPI
-pysocks
-psycopg2
 flask

@@ -117,8 +117,7 @@ def index():
 
 # Start flask server
 app.run(host=WEBHOOK_LISTEN,
-        port=WEBHOOK_PORT,
-        debug=False)
+        port=WEBHOOK_PORT)
 
 
 """

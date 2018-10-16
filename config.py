@@ -1,3 +1,4 @@
+# coding=utf-8
 admins = [491444575, 106791929]
 token = '566786956:AAEACP90bJLHhl0jrvTcuONCRWsZ_F16G2s'
 

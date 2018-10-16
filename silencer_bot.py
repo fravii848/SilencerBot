@@ -3,9 +3,11 @@ import telebot
 
 # Need this to connect to api.telegram.org
 from telebot import types
+from flask import Flask, request
 
-token = '566786956:AAEACP90bJLHhl0jrvTcuONCRWsZ_F16G2s'
-admins = [491444575, 106791929]
+
+app = Flask(__name__)
+URL = 'silencer-219514.appspot.com'
 
 # Taking our bot with TOKEN
 bot = telebot.TeleBot(config.token)
@@ -87,8 +89,29 @@ def listener(messages):
         print(message)
 
 
-bot.set_update_listener(listener)
-bot.polling(none_stop=True)
+@app.route('/HOOK', methods=['POST'])
+def webhook_handler():
+    if request.method == "POST":
+        update = telebot.Update.de_json(request.get_json(force=True))
+        chat_id = update.message.chat.id
+        text = update.message.text.encode('utf-8')
+        bot.sendMessage(chat_id=chat_id, text=text)
+
+    return 'ok'
+
+
+@app.route('/set_webhook', methods=['GET', 'POST'])
+def set_webhook():
+    s = bot.setWebhook('https://%s/HOOK' % URL)
+    if s:
+        return "webhook setup ok"
+    else:
+        return "webhook setup failed"
+
+
+@app.route('/')
+def index():
+    return '.'
 
 
 """

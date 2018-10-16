@@ -1,17 +1,22 @@
 # coding=utf-8
 import config
 import telebot
-
-# Need this to connect to api.telegram.org
-from telebot import types
-from flask import Flask, request
-
+import flask
+from flask import Flask
 
 app = Flask(__name__)
-URL = 'silencer-219514.appspot.com'
+
+WEBHOOK_HOST = 'silencer-219514.appspot.com'
+WEBHOOK_PORT = 80 # 443, 80, 88 or 8443 (port need to be 'open')
+WEBHOOK_LISTEN = '0.0.0.0'
+
+WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
+WEBHOOK_URL_PATH = "/%s/" % config.token
+
 
 # Taking our bot with TOKEN
 bot = telebot.TeleBot(config.token)
+
 
 @bot.message_handler(func=lambda m: True, content_types=['new_chat_members'])
 def add_on_invite(message):
@@ -25,7 +30,8 @@ def add_on_invite(message):
         bot.delete_message(message.chat.id, message.message_id)
 
 
-@bot.message_handler(func=lambda m: m.chat.type == 'supergroup' and m.from_user.id in config.admins, content_types=['migrate_from_chat_id'])
+@bot.message_handler(func=lambda m: m.chat.type == 'supergroup' and m.from_user.id in config.admins,
+                     content_types=['migrate_from_chat_id'])
 def add_on_supergroup_migration(message):
     bot.send_message(message.from_user.id, 'Чат {0} добавлен'.format(message.chat.title))
 
@@ -66,7 +72,6 @@ def user_chat_settings(message):
 # Handle Callback queries
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
-
     if call.data == 'add_chat':
         answer = 'Добавь меня в супергруппу и дай права администратора'
         bot.answer_callback_query(callback_query_id=call.id, show_alert=False)
@@ -85,34 +90,35 @@ def filter_supergroup_messages(message):
             bot.delete_message(message.chat.id, message.message_id)
 
 
-def listener(messages):
-    for message in messages:
-        print(message)
-
-
-@app.route('/HOOK', methods=['POST'])
-def webhook_handler():
-    if request.method == "POST":
-        update = telebot.Update.de_json(request.get_json(force=True))
-        chat_id = update.message.chat.id
-        text = update.message.text.encode('utf-8')
-        bot.sendMessage(chat_id=chat_id, text=text)
-
-    return 'ok'
+@app.route(WEBHOOK_URL_PATH, methods=['POST'])
+def webhook():
+    if flask.request.headers.get('content-type') == 'application/json':
+        json_string = flask.request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        flask.abort(403)
 
 
 @app.route('/set_webhook', methods=['GET', 'POST'])
 def set_webhook():
-    s = bot.setWebhook('https://%s/HOOK' % URL)
+    s = bot.set_webhook(WEBHOOK_URL_BASE+WEBHOOK_URL_PATH)
     if s:
         return "webhook setup ok"
     else:
         return "webhook setup failed"
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'HEAD'])
 def index():
     return '.'
+
+
+# Start flask server
+app.run(host=WEBHOOK_LISTEN,
+        port=WEBHOOK_PORT,
+        debug=True)
 
 
 """
